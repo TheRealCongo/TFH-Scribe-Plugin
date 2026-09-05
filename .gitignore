@@ -2,4 +2,5 @@ __pycache__/
 *.py[cod]
 lib/
 dist/
+CDCT-Discord-Plugin.zip
 *.wav
