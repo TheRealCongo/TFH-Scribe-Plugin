@@ -1,0 +1,5 @@
+discord.py[voice]>=2.5,<3
+pyttsx3>=2.99,<3
+# Discord now encrypts voice with DAVE. This reviewed, pinned upstream
+# revision adds DAVE decryption while the PyPI receive package catches up.
+discord-ext-voice-recv @ git+https://github.com/rdphillips7/discord-ext-voice-recv.git@ddd2860
