@@ -1,8 +1,8 @@
 # Creates a release ZIP that includes the optional private dependency bundle.
 Set-Location $PSScriptRoot
 
-$stage = Join-Path $env:TEMP "CDCT-Discord-Plugin-release"
-$output = Join-Path $PSScriptRoot "dist\CDCT-Discord-Plugin.zip"
+$stage = Join-Path $env:TEMP "AutoScript-Discord-Plugin-release"
+$output = Join-Path $PSScriptRoot "dist\AutoScript-Discord-Plugin.zip"
 
 if (Test-Path $stage) {
     Remove-Item -LiteralPath $stage -Recurse -Force

@@ -1,4 +1,4 @@
-"""CDCT entry point for the optional Discord Voice Transcriber plugin."""
+"""AutoScript entry point for the optional Discord Voice Transcriber plugin."""
 from __future__ import annotations
 
 import base64
@@ -77,7 +77,7 @@ class Plugin:
         self.config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
 
     def _log(self, message: str) -> None:
-        """Keep diagnostics available even when CDCT runs as a windowed EXE."""
+        """Keep diagnostics available even when AutoScript runs as a windowed EXE."""
         try:
             self.context.data_dir.mkdir(parents=True, exist_ok=True)
             log_path = self.context.data_dir / "discord-plugin.log"

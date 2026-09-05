@@ -70,7 +70,7 @@ class SpeakerChunker:
 
 
 class DiscordVoiceTranscriber:
-    """Runs a Discord bot and creates a single labeled CDCT transcript per session."""
+    """Runs a Discord bot and creates a single labeled AutoScript transcript per session."""
 
     def __init__(
         self, token, transcripts_dir: Path, work_dir: Path, model_size: str,
@@ -98,7 +98,7 @@ class DiscordVoiceTranscriber:
     def start(self) -> None:
         if self.thread and self.thread.is_alive():
             return
-        self.thread = threading.Thread(target=self._run, name="CDCT Discord bot", daemon=True)
+        self.thread = threading.Thread(target=self._run, name="AutoScript Discord bot", daemon=True)
         self.thread.start()
 
     def stop(self) -> None:
@@ -316,14 +316,14 @@ class DiscordVoiceTranscriber:
                         # renderer cannot speak on a particular Windows install.
                         service.log(f"Discord join announcement could not play: {exc}")
                 await interaction.followup.send(
-                    "CDCT transcription is active. This channel is being transcribed; each participant is labeled separately."
+                    "AutoScript transcription is active. This channel is being transcribed; each participant is labeled separately."
                 )
             except Exception as exc:
                 service._end_session()
                 detail = f"{type(exc).__name__}: {exc!r}"
                 service.log(f"Discord voice join failed: {detail}")
                 await interaction.followup.send(
-                    f"CDCT could not join this voice channel: {detail}", ephemeral=True
+                    f"AutoScript could not join this voice channel: {detail}", ephemeral=True
                 )
 
         @bot.tree.command(name=service.stop_command, description="Stop Discord voice transcription and leave the channel.")
@@ -338,7 +338,7 @@ class DiscordVoiceTranscriber:
             client.stop_listening()
             await client.disconnect()
             await asyncio.to_thread(service._end_session)
-            await interaction.followup.send("CDCT transcription stopped. The final audio has been transcribed.")
+            await interaction.followup.send("AutoScript transcription stopped. The final audio has been transcribed.")
 
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)

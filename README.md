@@ -1,7 +1,9 @@
-# CDCT Discord Voice Transcriber
+# AutoScript Discord Voice Transcriber
 
-Optional CDCT plugin that joins a Discord **server** voice channel and writes a
-local CDCT transcript with actual Discord display-name labels. It receives each
+> **Note:** AutoScript was previously named CDCT. This is a branding update; the project remains local-first, open source, and functionally continuous.
+
+Optional AutoScript plugin that joins a Discord **server** voice channel and writes a
+local AutoScript transcript with actual Discord display-name labels. It receives each
 member's decoded Discord audio separately, so overlapping speakers do not need
 post-hoc speaker diarization.
 
@@ -22,12 +24,12 @@ Discord transcripts use `VoiceChannelName_DDMMMYY_HHMMSS.md`, for example
 `General_05SEP26_142530.md`. Every session receives its own transcript file.
 
 1. Download a plugin release and copy its folder into the `plugins` folder next
-   to `CDCT.exe`.
+   to `AutoScript.exe`.
 2. A release bundle will include `lib/`. For source installs, run `install.py`
    with Python 3.11+ to create that folder.
-3. In CDCT, open **Settings → Plugins**, enable **Discord Voice Transcriber**,
+3. In AutoScript, open **Settings → Plugins**, enable **Discord Voice Transcriber**,
    then choose **Configure**.
-4. Paste a freshly generated bot token directly into that dialog. CDCT encrypts
+4. Paste a freshly generated bot token directly into that dialog. AutoScript encrypts
    it with Windows DPAPI for the signed-in Windows account; it is not stored in
    the repository or shown after saving.
 5. In Discord, join a server voice channel and run `/spawnscribe`. The bot
@@ -50,7 +52,7 @@ must never be shared or committed to Git.
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
    and create an application.
 2. Open **Bot**, add a bot, then use **Reset Token** if needed. Copy the token
-   only to the local CDCT plugin Configure dialog; do not paste it into source
+   only to the local AutoScript plugin Configure dialog; do not paste it into source
    files, a release, Discord chat, or an issue.
 3. Under **Installation**, enable Guild Install and select both the `bot` and
    `applications.commands` scopes.
@@ -58,12 +60,12 @@ must never be shared or committed to Git.
    Nicknames only when you want the plugin's custom per-server display name
    option to work.
 5. Open the generated install link and add the bot to a server you administer.
-6. In CDCT, enable the plugin under **Settings → Plugins**, choose
+6. In AutoScript, enable the plugin under **Settings → Plugins**, choose
    **Configure**, paste the token, and select **Save and start bot**.
 
 Adding somebody else's bot to a server does not give that server its own token
 or its own transcription host. It remains controlled by the person running the
-CDCT instance that holds that bot's token.
+AutoScript instance that holds that bot's token.
 
 ## Consent
 
