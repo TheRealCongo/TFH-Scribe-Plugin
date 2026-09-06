@@ -112,8 +112,11 @@ class DiscordVoiceTranscriber:
         self._stop_requested.set()
         if self.bot and self.loop:
             try:
-                future = asyncio.run_coroutine_threadsafe(self._disconnect(), self.loop)
-                future.result(timeout=25)
+                # Request the disconnect but never block the caller. A failed
+                # login can leave a loop that no longer services callbacks;
+                # waiting on it prevented a corrected token from starting a
+                # replacement client.
+                asyncio.run_coroutine_threadsafe(self._disconnect(), self.loop)
             except Exception:
                 pass
         self._end_session()
@@ -309,6 +312,10 @@ class DiscordVoiceTranscriber:
 
         @bot.event
         async def on_ready():
+            try:
+                await bot.change_presence(status=discord.Status.online)
+            except Exception as exc:
+                service.log(f"Could not set Discord bot presence: {exc}")
             try:
                 await bot.sync_guild_commands()
             except Exception as exc:

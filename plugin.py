@@ -1,17 +1,15 @@
 """AutoScript entry point for the optional Discord Voice Transcriber plugin."""
 from __future__ import annotations
 
-import base64
-import ctypes
 import json
 import re
 import threading
 from datetime import datetime
-from ctypes import wintypes
 from pathlib import Path
 
 import customtkinter as ctk
 from tkinter import messagebox
+from transcript_security import protect_secret, unprotect_secret
 
 
 DEFAULT_ANNOUNCEMENT = "Break Break Break, this call is being transcribed by the 25th Armored Division Scribe."
@@ -19,42 +17,6 @@ DEFAULT_START_COMMAND = "spawnscribe"
 DEFAULT_STOP_COMMAND = "killscribe"
 COMMAND_RE = re.compile(r"^[a-z0-9_-]{1,32}$")
 SAVED_TOKEN_MARKER = "autoscript-saved-token"
-
-
-class _DataBlob(ctypes.Structure):
-    _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_byte))]
-
-
-def _protect(value: str) -> str:
-    """Encrypt a token for the current Windows user with DPAPI."""
-    raw = value.encode("utf-8")
-    source_buffer = ctypes.create_string_buffer(raw)
-    source = _DataBlob(len(raw), ctypes.cast(source_buffer, ctypes.POINTER(ctypes.c_byte)))
-    target = _DataBlob()
-    if not ctypes.windll.crypt32.CryptProtectData(
-        ctypes.byref(source), None, None, None, None, 0, ctypes.byref(target)
-    ):
-        raise ctypes.WinError()
-    try:
-        encrypted = ctypes.string_at(target.pbData, target.cbData)
-        return base64.b64encode(encrypted).decode("ascii")
-    finally:
-        ctypes.windll.kernel32.LocalFree(target.pbData)
-
-
-def _unprotect(value: str) -> str:
-    raw = base64.b64decode(value.encode("ascii"))
-    source_buffer = ctypes.create_string_buffer(raw)
-    source = _DataBlob(len(raw), ctypes.cast(source_buffer, ctypes.POINTER(ctypes.c_byte)))
-    target = _DataBlob()
-    if not ctypes.windll.crypt32.CryptUnprotectData(
-        ctypes.byref(source), None, None, None, None, 0, ctypes.byref(target)
-    ):
-        raise ctypes.WinError()
-    try:
-        return ctypes.string_at(target.pbData, target.cbData).decode("utf-8")
-    finally:
-        ctypes.windll.kernel32.LocalFree(target.pbData)
 
 
 class Plugin:
@@ -112,19 +74,15 @@ class Plugin:
         self.service = None
         if previous:
             self._log("Restarting Discord bot with updated settings…")
-            threading.Thread(target=self._stop_then_start, args=(previous, config.copy()), daemon=True).start()
-            return
+            # A dead or partially connected gateway can take an unbounded time
+            # to close. Let it finish in the background so a saved replacement
+            # token can establish the new bot session immediately.
+            threading.Thread(target=previous.stop, daemon=True).start()
         self._start_service(config)
-
-    def _stop_then_start(self, previous, config: dict) -> None:
-        try:
-            previous.stop()
-        finally:
-            self._start_service(config)
 
     def _start_service(self, config: dict) -> None:
         try:
-            token = _unprotect(config["token_dpapi"])
+            token = unprotect_secret(config["token_dpapi"])
             from discord_service import DiscordVoiceTranscriber
 
             self.service = DiscordVoiceTranscriber(
@@ -202,7 +160,7 @@ class Plugin:
                 messagebox.showerror("Bot token required", "Paste the bot token before saving.", parent=dialog)
                 return
             if value:
-                config["token_dpapi"] = _protect(value)
+                config["token_dpapi"] = protect_secret(value)
             start = start_command.get().strip().lower()
             stop = stop_command.get().strip().lower()
             if not COMMAND_RE.fullmatch(start) or not COMMAND_RE.fullmatch(stop):
