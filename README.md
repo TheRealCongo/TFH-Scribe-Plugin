@@ -64,6 +64,8 @@ bot token.
 
 Tell people before transcription begins, follow applicable laws and platform
 rules, and protect transcript files and sharing tokens as sensitive material.
+Read the [Privacy Policy](PRIVACY_POLICY.md) and
+[Terms of Service](TERMS_OF_SERVICE.md) before using the plugin.
 
 ## Compatibility
 
