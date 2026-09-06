@@ -1,7 +1,7 @@
 {
   "id": "cdct.discord-transcriber",
   "name": "Discord Voice Transcriber",
-  "version": "2.1.0",
+  "version": "3.0.1",
   "api_version": 1,
   "entry_point": "plugin.py:Plugin",
   "description": "Joins a Discord server voice channel and saves each labeled session as an encrypted local transcript."
