@@ -4,4 +4,16 @@ lib/
 dist/
 CDCT-Discord-Plugin.zip
 AutoScript-Discord-Plugin.zip
+RELEASE_NOTES.md
 *.wav
+*.asenc
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+*.dpapi
+config.json
+.env
+.env.*
+*.zip

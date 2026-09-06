@@ -5,6 +5,7 @@ import base64
 import ctypes
 import json
 import re
+import threading
 from datetime import datetime
 from ctypes import wintypes
 from pathlib import Path
@@ -17,6 +18,7 @@ DEFAULT_ANNOUNCEMENT = "Break Break Break, this call is being transcribed by the
 DEFAULT_START_COMMAND = "spawnscribe"
 DEFAULT_STOP_COMMAND = "killscribe"
 COMMAND_RE = re.compile(r"^[a-z0-9_-]{1,32}$")
+SAVED_TOKEN_MARKER = "autoscript-saved-token"
 
 
 class _DataBlob(ctypes.Structure):
@@ -91,7 +93,12 @@ class Plugin:
         self.context = context
         config = self._load_config()
         if config.get("token_dpapi"):
-            self._start(config)
+            # Older configurations started the bot on launch. New configurations
+            # can store a token solely to open encrypted transcripts.
+            if config.get("bot_enabled", True):
+                self._start(config)
+            else:
+                self._log("Discord Voice Transcriber is configured for encrypted transcript access. The bot is not running.")
         else:
             self._log("Discord Voice Transcriber enabled. Choose Configure to save a bot token.")
 
@@ -101,8 +108,21 @@ class Plugin:
             self.service = None
 
     def _start(self, config: dict) -> None:
-        if self.service:
-            self.service.stop()
+        previous = self.service
+        self.service = None
+        if previous:
+            self._log("Restarting Discord bot with updated settings…")
+            threading.Thread(target=self._stop_then_start, args=(previous, config.copy()), daemon=True).start()
+            return
+        self._start_service(config)
+
+    def _stop_then_start(self, previous, config: dict) -> None:
+        try:
+            previous.stop()
+        finally:
+            self._start_service(config)
+
+    def _start_service(self, config: dict) -> None:
         try:
             token = _unprotect(config["token_dpapi"])
             from discord_service import DiscordVoiceTranscriber
@@ -116,8 +136,8 @@ class Plugin:
                 announcement=str(config.get("announcement", DEFAULT_ANNOUNCEMENT)),
                 start_command=str(config.get("start_command", DEFAULT_START_COMMAND)),
                 stop_command=str(config.get("stop_command", DEFAULT_STOP_COMMAND)),
-                nickname=str(config.get("nickname", "")),
                 log=self._log,
+                copy_token=self.context.copy_token,
             )
             self.service.start()
         except Exception as exc:
@@ -128,7 +148,7 @@ class Plugin:
         config = self._load_config()
         dialog = ctk.CTkToplevel(parent)
         dialog.title("Discord Voice Transcriber")
-        dialog.geometry("480x620")
+        dialog.geometry("500x630")
         dialog.resizable(False, False)
         dialog.transient(parent)
         dialog.grab_set()
@@ -142,7 +162,16 @@ class Plugin:
             justify="left", wraplength=430,
         ).pack(anchor="w", padx=24, pady=(0, 14))
         token = ctk.CTkEntry(dialog, placeholder_text="Bot token", show="•")
+        if config.get("token_dpapi"):
+            # Display a password-style mask without exposing or rewriting the
+            # real token. Saving this unchanged keeps the DPAPI-protected value.
+            token.insert(0, SAVED_TOKEN_MARKER)
         token.pack(fill="x", padx=24, pady=(0, 12))
+        ctk.CTkLabel(
+            dialog,
+            text="A masked value means a token is already saved. Leave it unchanged to keep it, or select it and paste a replacement token.",
+            justify="left", wraplength=430,
+        ).pack(anchor="w", padx=24, pady=(0, 12))
         model = ctk.CTkOptionMenu(dialog, values=["tiny", "base", "small", "medium"])
         model.set(config.get("model", "small"))
         ctk.CTkLabel(dialog, text="Whisper model").pack(anchor="w", padx=24)
@@ -165,13 +194,10 @@ class Plugin:
         stop_command.insert(0, config.get("stop_command", DEFAULT_STOP_COMMAND))
         stop_command.pack(fill="x", padx=24, pady=(2, 10))
 
-        ctk.CTkLabel(dialog, text="Bot display name in each server (optional)").pack(anchor="w", padx=24)
-        nickname = ctk.CTkEntry(dialog, placeholder_text="Requires Manage Nicknames permission")
-        nickname.insert(0, config.get("nickname", ""))
-        nickname.pack(fill="x", padx=24, pady=(2, 18))
-
-        def save():
+        def save(start_bot: bool):
             value = token.get().strip()
+            if value == SAVED_TOKEN_MARKER:
+                value = ""
             if not value and not config.get("token_dpapi"):
                 messagebox.showerror("Bot token required", "Paste the bot token before saving.", parent=dialog)
                 return
@@ -194,11 +220,20 @@ class Plugin:
             config["announcement"] = announcement.get("1.0", "end-1c").strip()
             config["start_command"] = start
             config["stop_command"] = stop
-            config["nickname"] = nickname.get().strip()[:32]
+            # Saving a token for decryption alone must not create another bot
+            # session on an approved admin's computer. Preserve an already
+            # running service when changing ordinary settings.
+            config["bot_enabled"] = bool(start_bot or self.service)
             self._save_config(config)
-            self._start(config)
+            if start_bot:
+                self._start(config)
             dialog.destroy()
 
-        ctk.CTkButton(dialog, text="Save and start bot", command=save).pack(
-            anchor="e", padx=24, pady=(0, 18)
+        buttons = ctk.CTkFrame(dialog, fg_color="transparent")
+        buttons.pack(anchor="e", padx=24, pady=(0, 18))
+        ctk.CTkButton(buttons, text="Save settings", command=lambda: save(False)).pack(
+            side="left", padx=(0, 8)
+        )
+        ctk.CTkButton(buttons, text="Save and start bot", command=lambda: save(True)).pack(
+            side="left"
         )

@@ -4,8 +4,10 @@ from __future__ import annotations
 import asyncio
 import audioop
 import logging
+import os
 import queue
 import re
+import secrets
 import threading
 import time
 import tempfile
@@ -75,7 +77,8 @@ class DiscordVoiceTranscriber:
     def __init__(
         self, token, transcripts_dir: Path, work_dir: Path, model_size: str,
         chunk_seconds: int, announcement: str, start_command: str,
-        stop_command: str, nickname: str, log,
+        stop_command: str, log, copy_token=None,
+        test_guild_id=None, operator_id=None,
     ):
         self.token = token
         self.transcripts_dir = transcripts_dir
@@ -85,8 +88,12 @@ class DiscordVoiceTranscriber:
         self.announcement = announcement.strip()
         self.start_command = start_command
         self.stop_command = stop_command
-        self.nickname = nickname.strip()
         self.log = log
+        self.copy_token = copy_token
+        self.test_guild_id = int(test_guild_id) if test_guild_id else None
+        self.operator_id = int(operator_id) if operator_id else None
+        self._stop_requested = threading.Event()
+        self._session_lock = threading.RLock()
         self.thread: threading.Thread | None = None
         self.loop = None
         self.bot = None
@@ -102,14 +109,25 @@ class DiscordVoiceTranscriber:
         self.thread.start()
 
     def stop(self) -> None:
+        self._stop_requested.set()
         if self.bot and self.loop:
             try:
-                asyncio.run_coroutine_threadsafe(self.bot.close(), self.loop)
+                future = asyncio.run_coroutine_threadsafe(self._disconnect(), self.loop)
+                future.result(timeout=25)
             except Exception:
                 pass
         self._end_session()
-        self.bot = None
-        self.loop = None
+
+    async def _disconnect(self):
+        for client in list(self.bot.voice_clients):
+            if hasattr(client, "stop_listening"):
+                client.stop_listening()
+            await client.disconnect(force=True)
+        await self.bot.close()
+
+    def command_allowed(self, guild_id, user_id):
+        return ((self.test_guild_id is None or guild_id == self.test_guild_id)
+                and (self.operator_id is None or user_id == self.operator_id))
 
     def _load_model(self) -> None:
         from transcriber import load_model
@@ -118,26 +136,41 @@ class DiscordVoiceTranscriber:
         self.log(f"Discord plugin loaded Whisper '{self.model_size}' on {device}.")
 
     def _begin_session(self, channel_name: str) -> None:
-        """Create the daily channel transcript only when /scribe begins."""
+        """Create a new transcript only when the start command begins."""
         from transcriber import TranscriptionWorker
 
         self.transcripts_dir.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now().strftime("%d%b%y_%H%M%S").upper()
-        transcript = self.transcripts_dir / f"{_safe_name(channel_name)}_{stamp}.md"
-        transcript.write_text("## Discord voice transcript\n\n", encoding="utf-8")
+        transcript = self.transcripts_dir / f"{_safe_name(channel_name)}_{stamp}.asenc"
+        header = "## Discord voice transcript\n\n"
+        # Discord sessions use the same independent sharing-token format as
+        # every AutoScript recording. The bot token is never an encryption key.
+        from transcript_security import EncryptedLog, TokenVault, new_token
+        sharing_token = new_token()
+        record_id = secrets.token_urlsafe(16)
+        vault = TokenVault(Path(os.environ.get("APPDATA", str(Path.home()))) / "AutoScript" / "transcript-tokens.json")
+        vault.save(record_id, sharing_token)
+        writer = EncryptedLog(transcript, sharing_token, record_id, header)
+        if self.copy_token:
+            self.copy_token(sharing_token)
+        self.log("Discord transcript encrypted with a unique sharing token. Use Copy Token in Recent Transcripts to share it.")
+
         self.queue = queue.Queue()
-        self.worker = TranscriptionWorker(self.model, self.queue, transcript, delete_chunks=True)
+        self.worker = TranscriptionWorker(
+            self.model, self.queue, transcript, delete_chunks=True, write_line=writer.append
+        )
         self.worker.start()
         self.chunker = SpeakerChunker(self.queue, self.work_dir / "chunks", self.chunk_seconds)
         self.log(f"Discord transcription started: {transcript.name}")
 
     def _end_session(self) -> None:
-        if self.chunker:
-            self.chunker.flush_all()
-        if self.worker:
-            self.worker.stop(drain=True)
-        self.worker = None
-        self.chunker = None
+        with self._session_lock:
+            if self.chunker:
+                self.chunker.flush_all()
+            if self.worker:
+                self.worker.stop(drain=True)
+            self.worker = None
+            self.chunker = None
 
     def _run(self) -> None:
         try:
@@ -152,6 +185,8 @@ class DiscordVoiceTranscriber:
             self._load_model()
         except Exception as exc:
             self.log(f"Discord transcription worker could not start: {exc}")
+            return
+        if self._stop_requested.is_set():
             return
         # Voice connection needs the gateway VOICE_STATE_UPDATE events for the
         # bot itself. Start from Discord's complete non-privileged default
@@ -230,20 +265,29 @@ class DiscordVoiceTranscriber:
                 return False
 
             def write(self, user, data):
-                service.chunker.add(user, data.pcm)
+                if service.chunker:
+                    service.chunker.add(user, data.pcm)
 
             def cleanup(self):
-                service.chunker.flush_all()
+                if service.chunker:
+                    service.chunker.flush_all()
 
         class Bot(commands.Bot):
             async def setup_hook(self):
                 # Preserve the global definition for a public release, but
                 # publish guild copies immediately. Global commands can take
                 # up to an hour before Discord refreshes them.
-                await self.tree.sync()
+                if service.test_guild_id:
+                    guild = discord.Object(id=service.test_guild_id)
+                    self.tree.copy_global_to(guild=guild)
+                    await self.tree.sync(guild=guild)
+                else:
+                    await self.tree.sync()
 
             async def sync_guild_commands(self):
                 for guild in self.guilds:
+                    if service.test_guild_id and guild.id != service.test_guild_id:
+                        continue
                     # Replace the server copy wholesale on each fresh bot
                     # connection. This prevents Discord clients using an old
                     # application-command ID after a command rename.
@@ -257,7 +301,8 @@ class DiscordVoiceTranscriber:
 
             async def on_interaction(self, interaction):
                 service.log(f"Discord interaction received: {interaction.data.get('name', 'unknown')}")
-                await super().on_interaction(interaction)
+                # discord.py dispatches the command tree separately. Bot has no
+                # parent on_interaction method to call.
 
         bot = Bot(command_prefix="!", intents=intents)
         self.bot = bot
@@ -268,13 +313,6 @@ class DiscordVoiceTranscriber:
                 await bot.sync_guild_commands()
             except Exception as exc:
                 service.log(f"Could not sync Discord server commands: {exc}")
-            if service.nickname:
-                for guild in bot.guilds:
-                    try:
-                        member = guild.me or await guild.fetch_member(bot.user.id)
-                        await member.edit(nick=service.nickname)
-                    except Exception as exc:
-                        service.log(f"Could not set bot display name in {guild.name}: {exc}")
             service.log(f"Discord bot connected as {bot.user}.")
 
         @bot.tree.error
@@ -285,6 +323,9 @@ class DiscordVoiceTranscriber:
 
         @bot.tree.command(name=service.start_command, description="Join your voice channel and begin labeled transcription.")
         async def spawnscribe(interaction: discord.Interaction):
+            if not service.command_allowed(interaction.guild_id, interaction.user.id):
+                await interaction.response.send_message("Only the configured test operator can start or stop this transcription.", ephemeral=True)
+                return
             # Voice negotiation can take longer than Discord's three-second
             # deadline. Acknowledge first so the command never looks inert.
             await interaction.response.defer(thinking=True)
@@ -292,6 +333,9 @@ class DiscordVoiceTranscriber:
             channel = getattr(voice_state, "channel", None)
             if channel is None:
                 await interaction.followup.send("Join a voice channel first.", ephemeral=True)
+                return
+            if service.worker is not None:
+                await interaction.followup.send("A transcript is already active. Stop it before starting another.", ephemeral=True)
                 return
             try:
                 if service.worker is None:
@@ -328,6 +372,9 @@ class DiscordVoiceTranscriber:
 
         @bot.tree.command(name=service.stop_command, description="Stop Discord voice transcription and leave the channel.")
         async def killscribe(interaction: discord.Interaction):
+            if not service.command_allowed(interaction.guild_id, interaction.user.id):
+                await interaction.response.send_message("Only the configured test operator can start or stop this transcription.", ephemeral=True)
+                return
             # Draining the final Whisper chunk can take longer than Discord's
             # three-second interaction deadline, so acknowledge before it.
             await interaction.response.defer(thinking=True)
@@ -347,4 +394,7 @@ class DiscordVoiceTranscriber:
         except Exception as exc:
             self.log(f"Discord bot stopped: {exc}")
         finally:
+            if not bot.is_closed():
+                self.loop.run_until_complete(bot.close())
+            self._end_session()
             self.loop.close()

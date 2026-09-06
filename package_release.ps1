@@ -10,9 +10,12 @@ if (Test-Path $stage) {
 New-Item -ItemType Directory -Path $stage | Out-Null
 Copy-Item -Path @(
     "plugin.py", "discord_service.py", "plugin.json", "README.md",
-    "requirements.txt", "install.py", "LICENSE"
+    "LOCAL_ENCRYPTED_TRANSCRIPTS.md", "requirements.txt",
+    "install.py", "LICENSE"
 ) -Destination $stage -ErrorAction SilentlyContinue
-Copy-Item -Path "lib" -Destination (Join-Path $stage "lib") -Recurse -Force
+if (Test-Path -LiteralPath "lib") {
+    Copy-Item -Path "lib" -Destination (Join-Path $stage "lib") -Recurse -Force
+}
 New-Item -ItemType Directory -Path (Split-Path $output) -Force | Out-Null
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $output -Force
 Remove-Item -LiteralPath $stage -Recurse -Force

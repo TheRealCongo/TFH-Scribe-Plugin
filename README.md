@@ -1,73 +1,72 @@
 # AutoScript Discord Voice Transcriber
 
-> **Note:** AutoScript was previously named CDCT. This is a branding update; the project remains local-first, open source, and functionally continuous.
+The AutoScript Discord Voice Transcriber is an optional plugin for Discord server
+voice channels. It joins the operator's channel, receives each Discord member's
+audio separately, and writes a labeled encrypted transcript to the local
+AutoScript transcript folder.
 
-Optional AutoScript plugin that joins a Discord **server** voice channel and writes a
-local AutoScript transcript with actual Discord display-name labels. It receives each
-member's decoded Discord audio separately, so overlapping speakers do not need
-post-hoc speaker diarization.
+## What it does
 
-## Status
+- Records Discord server voice channels only; Discord DMs and group DMs are not
+  supported.
+- Labels transcript lines with the Discord display name of the speaker.
+- Saves every session as `VoiceChannelName_DDMMMYY_HHMMSS.asenc`.
+- Creates a unique sharing token for every transcript and copies it to the host
+  clipboard.
+- Keeps the bot token protected with Windows DPAPI. The bot token is not a
+  transcript-encryption key.
+- Can play the configured join announcement and posts a visible transcription notice
+  when an authorized operator starts a session.
 
-This is an initial test-server implementation. It uses
-[`discord-ext-voice-recv`](https://github.com/imayhaveborkedit/discord-ext-voice-recv),
-whose maintainers label the receive extension incomplete; test Discord updates
-before relying on it for important meetings.
+Transcription and encrypted transcript storage remain local to the computer
+running AutoScript. Share `.asenc` files manually with their matching unique
+transcript token when needed.
 
 ## Install
 
-The plugin currently pins a reviewed DAVE-compatible revision of
-`discord-ext-voice-recv`. Discord encrypts current voice traffic with DAVE;
-the public PyPI receive package can join a channel but cannot decode it yet.
-
-Discord transcripts use `VoiceChannelName_DDMMMYY_HHMMSS.md`, for example
-`General_05SEP26_142530.md`. Every session receives its own transcript file.
-
-1. Download a plugin release and copy its folder into the `plugins` folder next
+1. Download the plugin release and copy its folder into the `plugins` folder next
    to `AutoScript.exe`.
-2. A release bundle will include `lib/`. For source installs, run `install.py`
-   with Python 3.11+ to create that folder.
-3. In AutoScript, open **Settings → Plugins**, enable **Discord Voice Transcriber**,
-   then choose **Configure**.
-4. Paste a freshly generated bot token directly into that dialog. AutoScript encrypts
-   it with Windows DPAPI for the signed-in Windows account; it is not stored in
-   the repository or shown after saving.
-5. In Discord, join a server voice channel and run `/spawnscribe`. The bot
-   posts a visible transcription notice. Run `/killscribe` when finished.
+2. Release bundles include `lib/`. For a source checkout, run `install.py` with
+   Python 3.11 or later to create that folder.
+3. In AutoScript, open **Settings → Plugins**, enable **Discord Voice
+   Transcriber**, then choose **Configure**.
+4. Paste the bot token into the masked token field and choose **Save and start
+   bot**.
+5. Join a Discord server voice channel and run `/spawnscribe` to start. Run
+   `/killscribe` to stop and leave the channel.
 
-The Configure dialog can change the start/stop commands and the bot's
-per-server display name. Discord command names must be lowercase. Changing
-the display name requires the bot's role to have Manage Nicknames permission;
-the global application name remains managed in the Discord Developer Portal.
+The Configure dialog also allows the transcription model and start/stop command
+names to be changed. Server owners and administrators manage the bot's display
+name directly in Discord.
 
-The bot needs only View Channels, Send Messages, Connect, and Speak. It works
-in server voice channels, not Discord DMs or group DMs.
+## Create a Discord bot
 
-## Create your own Discord bot
+Each host should create and use a separate Discord bot. Never share or commit a
+bot token.
 
-Each person hosting this plugin should create and use their own Discord bot.
-A bot token belongs to its application, not to a particular Discord server, and
-must never be shared or committed to Git.
-
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-   and create an application.
-2. Open **Bot**, add a bot, then use **Reset Token** if needed. Copy the token
-   only to the local AutoScript plugin Configure dialog; do not paste it into source
-   files, a release, Discord chat, or an issue.
-3. Under **Installation**, enable Guild Install and select both the `bot` and
+1. Open the [Discord Developer Portal](https://discord.com/developers/applications)
+   and create an application with a bot.
+2. Under **Installation**, enable Guild Install and select the `bot` and
    `applications.commands` scopes.
-4. Grant the bot View Channels, Send Messages, Connect, and Speak. Add Manage
-   Nicknames only when you want the plugin's custom per-server display name
-   option to work.
-5. Open the generated install link and add the bot to a server you administer.
-6. In AutoScript, enable the plugin under **Settings → Plugins**, choose
-   **Configure**, paste the token, and select **Save and start bot**.
+3. Grant View Channels, Send Messages, Connect, and Speak permissions.
+4. Add the bot to a server you administer.
+5. Paste its token only into the local AutoScript plugin configuration.
 
-Adding somebody else's bot to a server does not give that server its own token
-or its own transcription host. It remains controlled by the person running the
-AutoScript instance that holds that bot's token.
+## Share an encrypted Discord transcript
 
-## Consent
+1. The host stops the session and sends the resulting `.asenc` file manually.
+2. The host sends that recording's copied sharing token separately.
+3. The recipient opens the file in AutoScript and enters the token once.
+4. AutoScript decrypts the transcript in memory and saves the successful unlock
+   only in that recipient's local Windows vault.
 
-Tell everyone in the call before transcription begins. The bot deliberately
-posts a channel notice when `/scribe` starts.
+## Responsible use
+
+Tell people before transcription begins, follow applicable laws and platform
+rules, and protect transcript files and sharing tokens as sensitive material.
+
+## Compatibility
+
+The plugin uses a reviewed DAVE-compatible revision of
+[`discord-ext-voice-recv`](https://github.com/imayhaveborkedit/discord-ext-voice-recv).
+Test Discord updates before relying on the plugin for an important session.
