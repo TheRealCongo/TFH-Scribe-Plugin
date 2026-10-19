@@ -1,4 +1,4 @@
-"""AutoScript entry point for the optional Discord Voice Transcriber plugin."""
+"""Entry point of the TFH Scribe Plugin (Discord voice transcription) for Bifrost Scribe and AutoScript."""
 from __future__ import annotations
 
 import json
@@ -41,7 +41,7 @@ class Plugin:
         self.config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
 
     def _log(self, message: str) -> None:
-        """Keep diagnostics available even when AutoScript runs as a windowed EXE."""
+        """Keep diagnostics available even when the host app runs as a windowed EXE."""
         try:
             self.context.data_dir.mkdir(parents=True, exist_ok=True)
             log_path = self.context.data_dir / "discord-plugin.log"
@@ -60,9 +60,9 @@ class Plugin:
             if config.get("bot_enabled", True):
                 self._start(config)
             else:
-                self._log("Discord Voice Transcriber is configured for encrypted transcript access. The bot is not running.")
+                self._log("TFH Scribe Plugin is configured for encrypted transcript access. The bot is not running.")
         else:
-            self._log("Discord Voice Transcriber enabled. Choose Configure to save a bot token.")
+            self._log("TFH Scribe Plugin enabled. Choose Configure to save a bot token.")
 
     def deactivate(self) -> None:
         if self.service:
@@ -100,18 +100,18 @@ class Plugin:
             self.service.start()
         except Exception as exc:
             self.service = None
-            self._log(f"Discord Voice Transcriber could not start: {exc}")
+            self._log(f"TFH Scribe Plugin could not start: {exc}")
 
     def open_settings(self, parent) -> None:
         config = self._load_config()
         dialog = ctk.CTkToplevel(parent)
-        dialog.title("Discord Voice Transcriber")
+        dialog.title("TFH Scribe Plugin")
         dialog.geometry("500x630")
         dialog.resizable(False, False)
         dialog.transient(parent)
         dialog.grab_set()
 
-        ctk.CTkLabel(dialog, text="Discord Voice Transcriber", font=("Cascadia Mono", 16, "bold")).pack(
+        ctk.CTkLabel(dialog, text="TFH Scribe Plugin", font=("Cascadia Mono", 16, "bold")).pack(
             anchor="w", padx=24, pady=(24, 8)
         )
         ctk.CTkLabel(

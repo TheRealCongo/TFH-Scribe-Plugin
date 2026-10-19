@@ -1,13 +1,13 @@
 # Sharing encrypted transcripts
 
-AutoScript and the Discord plugin use the same local encrypted-file workflow.
+Bifrost Scribe, AutoScript and the TFH Scribe Plugin use the same local encrypted-file workflow.
 There is no relay, background connection, peer link, or shared transcript store.
 
 1. Record a transcript. It is saved locally as an `.asenc` file.
-2. AutoScript copies that recording's unique sharing token to the host clipboard.
+2. The app copies that recording's unique sharing token to the host clipboard.
 3. Send the `.asenc` file to the intended recipient by a method you trust.
 4. Send the unique token separately.
-5. The recipient opens the file in AutoScript and enters the token. AutoScript
+5. The recipient opens the file in Bifrost Scribe or AutoScript and enters the token. The app
    decrypts it in memory and stores the successful unlock only in that Windows
    user's local DPAPI-protected token vault.
 

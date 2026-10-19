@@ -1,13 +1,13 @@
-# AutoScript Discord Voice Transcriber Terms of Service
+# TFH Scribe Plugin Terms of Service
 
-**Effective date: September 5, 2026**
+**Effective date: October 19, 2026**
 
-These Terms govern use of the AutoScript Discord Voice Transcriber plugin
-(`Plugin`). By installing, configuring, or using the Plugin, you agree to them.
+These Terms govern use of the TFH Scribe Plugin (formerly the AutoScript
+Discord Voice Transcriber) (`Plugin`). By installing, configuring, or using the Plugin, you agree to them.
 
 ## The Plugin
 
-The Plugin is optional local software for AutoScript that can join a Discord
+The Plugin is optional local software for Bifrost Scribe and AutoScript that can join a Discord
 server voice channel, transcribe received member audio into a speaker-labeled
 encrypted local file, and respond to its configured Discord commands. It is not
 operated by Discord and does not provide a hosted transcript service.
@@ -15,7 +15,7 @@ operated by Discord and does not provide a hosted transcript service.
 ## The Discord bot and local plugin
 
 The Discord bot is a bridge between Discord and a properly configured local
-AutoScript plugin. Inviting the bot to a server alone does not make it record,
+TFH Scribe Plugin. Inviting the bot to a server alone does not make it record,
 transcribe, store, share, or otherwise process voice-channel content. A session
 can begin only when an authorized operator runs the configured plugin and starts
 it through the available command.
@@ -67,4 +67,4 @@ certain limitations, so these limits apply only to the extent permitted by law.
 ## Contact
 
 For project-level questions, open an issue at
-https://github.com/TheRealCongo/AutoScript-Discord-Plugin/issues.
+https://github.com/TheRealCongo/TFH-Scribe-Plugin/issues.

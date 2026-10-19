@@ -1,8 +1,8 @@
 """Install this plugin's optional voice dependencies into its private lib folder.
 
-Run with Python 3.11+ from this plugin folder before copying it into AutoScript's
-plugins folder. Release ZIPs will bundle lib/ so ordinary AutoScript.exe users do
-not need Python or pip.
+Run from this plugin folder with the same Python version as the host app's engine (Bifrost Scribe: 3.12),
+because lib/ holds compiled modules for that version. Bifrost Scribe ships the plugin with lib/ built this way,
+so Scribe users need neither Python nor pip.
 """
 from pathlib import Path
 import subprocess

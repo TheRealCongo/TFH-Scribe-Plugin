@@ -1,21 +1,22 @@
-# AutoScript Discord Voice Transcriber Privacy Policy
+# TFH Scribe Plugin Privacy Policy
 
-**Effective date: September 5, 2026**
+**Effective date: October 19, 2026**
 
-AutoScript Discord Voice Transcriber is a local AutoScript plugin for Discord
-server voice channels. This policy explains the information the plugin processes
+The TFH Scribe Plugin (formerly the AutoScript Discord Voice Transcriber) is a
+local plugin for Bifrost Scribe and AutoScript that transcribes Discord server
+voice channels. This policy explains the information the plugin processes
 when an operator runs it.
 
 ## Who operates the plugin
 
 The person who installs, configures, and runs the plugin controls its operation
-and any transcripts it creates. The AutoScript project does not operate a
-central transcript service, relay, or hosted transcript database.
+and any transcripts it creates. The TFH Scribe Plugin project does not
+operate a central transcript service, relay, or hosted transcript database.
 
 ## The Discord bot and local plugin
 
-The Discord bot is a bridge between Discord and a properly configured AutoScript
-plugin running on an operator's computer. Adding the bot to a server by itself
+The Discord bot is a bridge between Discord and a properly configured TFH Scribe
+Plugin running on an operator's computer. Adding the bot to a server by itself
 does not record, transcribe, store, share, or otherwise process a voice channel.
 Those actions occur only when an authorized operator has configured the local
 plugin and starts a session.
@@ -38,8 +39,8 @@ That token is separate from the Discord bot token.
 Voice audio is used only to produce a speaker-labeled local transcript. Discord
 identifiers and display names are used only to operate the bot and identify the
 speaker in that transcript. The plugin does not sell data, run advertising,
-perform analytics, or send transcript content to an AutoScript-operated remote
-service.
+perform analytics, or send transcript content to a remote service operated by
+the project.
 
 Discord itself processes information according to its own policies when you use
 Discord. This plugin is a third-party service and is not operated by Discord.
@@ -63,7 +64,7 @@ their Windows account, transcript files, sharing tokens, and bot token.
 The operator chooses where transcripts are stored, how long they are retained,
 and whether to share them. To share a transcript, the operator manually sends
 the encrypted `.asenc` file and its matching sharing token to an intended
-recipient. Anyone who receives both can read that transcript with AutoScript.
+recipient. Anyone who receives both can read that transcript with Bifrost Scribe or AutoScript.
 
 Participants should contact the server administrator or the operator running
 the plugin for questions about a particular recording, deletion, or access.
@@ -79,4 +80,4 @@ employment laws that apply to the conversation.
 
 This policy may change when the plugin changes. The effective date will be
 updated with a revision. For project-level questions, open an issue at
-https://github.com/TheRealCongo/AutoScript-Discord-Plugin/issues.
+https://github.com/TheRealCongo/TFH-Scribe-Plugin/issues.
